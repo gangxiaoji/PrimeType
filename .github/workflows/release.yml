@@ -48,9 +48,10 @@ jobs:
         run: bash scripts/setup_rime_ice.sh
 
       - name: Build DMG
-        # 上轮 x86_64 在这步卡了 3.5 小时、arm64 卡了 1.5 小时没动静（xcodebuild �疑似挂起），
-        # 正常构建 20 分钟内应完成；加超时让挂起快速失败，不用等满 6 小时默认超时。
-        timeout-minutes: 45
+        # 45 分钟不够：单文件编译后已确认在逐文件编，但 SettingsWindowController.swift
+        # 单文件 4446 行，-O 编译极慢，45 分钟内编不完三个 target。放宽到 120 分钟。
+        # 若 120 分钟仍卡在同一文件，说明是编译器真挂起，再改优化级别。
+        timeout-minutes: 120
         run: bash scripts/build_dmg.sh ${{ matrix.arch }}
 
       - name: Upload DMG artifact
