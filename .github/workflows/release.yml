@@ -38,17 +38,20 @@ jobs:
           brew install xcodegen cmake
 
       - name: Build librime 1.17.0 from source
-        run: ./scripts/build_librime.sh
+        run: bash scripts/build_librime.sh
 
       - name: Build opus from source (Intel only; arm64 uses vendored lib)
         if: matrix.arch == 'x86_64'
-        run: ./scripts/build_opus.sh
+        run: bash scripts/build_opus.sh
 
       - name: Fetch rime-ice schemas
-        run: ./scripts/setup_rime_ice.sh
+        run: bash scripts/setup_rime_ice.sh
 
       - name: Build DMG
-        run: ./scripts/build_dmg.sh ${{ matrix.arch }}
+        # 上轮 x86_64 在这步卡了 3.5 小时、arm64 卡了 1.5 小时没动静（xcodebuild �疑似挂起），
+        # 正常构建 20 分钟内应完成；加超时让挂起快速失败，不用等满 6 小时默认超时。
+        timeout-minutes: 45
+        run: bash scripts/build_dmg.sh ${{ matrix.arch }}
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
