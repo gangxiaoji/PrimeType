@@ -19,8 +19,18 @@ git clone --recursive --branch "$RIME_VERSION" --depth 1 \
   https://github.com/rime/librime.git "$LIME_DIR"
 cd "$LIME_DIR"
 
-echo "==> Building third-party deps from source (static): leveldb, marisa, opencc, yaml-cpp..."
-make deps/leveldb deps/marisa-trie deps/opencc deps/yaml-cpp
+echo "==> Building third-party deps from source (static): glog, leveldb, marisa, opencc, yaml-cpp..."
+# 注意：必须用 `make deps`（走 deps.mk 的 .PHONY 规则），不能写 `make deps/yaml-cpp` 这种形式——
+# deps/<name> 是已存在的子模块目录，make 会认为它们 up to date 而什么都不做，yaml-cpp 根本没编出来，
+# 随后 cmake 就报 Could not find yaml-cpp library。
+# 另外 librime 的 Makefile 会往 MAKEFLAGS 里拼一个 -j$((...))，在 macOS runner 上算不出核数会报错；
+# 用 NOPARALLEL=1 关掉它，再显式给 MAKEFLAGS 一个正确的 -j 数。
+export NOPARALLEL=1
+export MAKEFLAGS="-j$(sysctl -n hw.ncpu)"
+make deps
+echo "==> deps installed:"
+ls "$LIME_DIR/lib" | sort
+test -f "$LIME_DIR/lib/libyaml-cpp.a" || { echo "ERROR: yaml-cpp was not built by 'make deps'" >&2; exit 1; }
 
 echo "==> Configuring librime (shared lib, static deps, separate plugin dylibs)..."
 cmake -S . -B build \
