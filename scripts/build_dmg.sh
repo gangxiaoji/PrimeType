@@ -28,12 +28,17 @@ echo "==> Building PrimeTypeSettings.app Helper (Release, $ARCH)..."
 # 含 LocalNeuralReranker/GrammarModelManager/VoiceASREngine）在 macos-15-intel runner
 # 上 44 分钟零输出、被 45 分钟超时杀掉；上一轮同样位置卡了 3.5 小时。
 # 单文件编译并行、快得多，产物仍是 Release -O，只是逐文件优化。
+# SWIFT_OPTIMIZATION_LEVEL=-Onone：关优化，最后一招。
+# 三轮全卡在 PrimeTypeSettings 编译 SettingsWindowController.swift（4446 行）那批文件上，
+# 120 分钟零输出，编译器真挂起。关优化绕过优化器挂起；若卡在类型检查则仍无效。
+# 产物是未优化的，仅供测试。
 xcodebuild \
   -project InputType.xcodeproj \
   -scheme PrimeTypeSettings \
   -configuration Release \
   -arch "$ARCH" \
   SWIFT_COMPILATION_MODE=singlefile \
+  SWIFT_OPTIMIZATION_LEVEL=-Onone \
   -derivedDataPath "$DERIVED_DATA" \
   build
 
@@ -44,6 +49,7 @@ xcodebuild \
   -configuration Release \
   -arch "$ARCH" \
   SWIFT_COMPILATION_MODE=singlefile \
+  SWIFT_OPTIMIZATION_LEVEL=-Onone \
   -derivedDataPath "$DERIVED_DATA" \
   build
 
@@ -54,6 +60,7 @@ xcodebuild \
   -configuration Release \
   -arch "$ARCH" \
   SWIFT_COMPILATION_MODE=singlefile \
+  SWIFT_OPTIMIZATION_LEVEL=-Onone \
   -derivedDataPath "$DERIVED_DATA" \
   build
 
