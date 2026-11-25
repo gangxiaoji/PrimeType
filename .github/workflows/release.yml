@@ -1,0 +1,59 @@
+name: Build DMG
+
+# 构建 arm64 与 x86_64 两个架构的 PrimeType 安装 dmg。
+# - arm64 在 macos-15 (Apple Silicon) runner 上原生构建
+# - x86_64 在 macos-15-intel runner 上原生构建（不交叉编译）
+# 触发：手动 Run workflow，或推送 v* tag。
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }} DMG
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+            dmg_suffix: macos-arm64
+          - arch: x86_64
+            runner: macos-15-intel
+            dmg_suffix: macos-x86_64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install build tools
+        run: |
+          brew install xcodegen cmake
+
+      - name: Build librime 1.17.0 from source
+        run: ./scripts/build_librime.sh
+
+      - name: Build opus from source (Intel only; arm64 uses vendored lib)
+        if: matrix.arch == 'x86_64'
+        run: ./scripts/build_opus.sh
+
+      - name: Fetch rime-ice schemas
+        run: ./scripts/setup_rime_ice.sh
+
+      - name: Build DMG
+        run: ./scripts/build_dmg.sh ${{ matrix.arch }}
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrimeType-${{ matrix.dmg_suffix }}
+          path: build/release/*.dmg
+          if-no-files-found: error
+          retention-days: 30
