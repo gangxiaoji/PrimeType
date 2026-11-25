@@ -23,11 +23,17 @@ echo "==> Generating Xcode project..."
 xcodegen generate
 
 echo "==> Building PrimeTypeSettings.app Helper (Release, $ARCH)..."
+# SWIFT_COMPILATION_MODE=singlefile：CI 上 Whole Module Optimization 会卡死。
+# 实测（run 45668194826）：PrimeTypeSettings 的 WMO 编译（-O，19 个文件一次编完，
+# 含 LocalNeuralReranker/GrammarModelManager/VoiceASREngine）在 macos-15-intel runner
+# 上 44 分钟零输出、被 45 分钟超时杀掉；上一轮同样位置卡了 3.5 小时。
+# 单文件编译并行、快得多，产物仍是 Release -O，只是逐文件优化。
 xcodebuild \
   -project InputType.xcodeproj \
   -scheme PrimeTypeSettings \
   -configuration Release \
   -arch "$ARCH" \
+  SWIFT_COMPILATION_MODE=singlefile \
   -derivedDataPath "$DERIVED_DATA" \
   build
 
@@ -37,6 +43,7 @@ xcodebuild \
   -scheme InputType \
   -configuration Release \
   -arch "$ARCH" \
+  SWIFT_COMPILATION_MODE=singlefile \
   -derivedDataPath "$DERIVED_DATA" \
   build
 
@@ -46,6 +53,7 @@ xcodebuild \
   -scheme PrimeTypeInstaller \
   -configuration Release \
   -arch "$ARCH" \
+  SWIFT_COMPILATION_MODE=singlefile \
   -derivedDataPath "$DERIVED_DATA" \
   build
 
